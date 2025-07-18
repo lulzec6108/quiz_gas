@@ -251,28 +251,29 @@
           user.nik = nik;
           user.nama = res.nama || '';
           document.getElementById('login-section').style.display = 'none';
-          loadQuizList();
+          loadQuizList(); // Lanjutkan untuk memuat daftar kuis
         } else {
           document.getElementById('login-msg').innerText = res && res.message ? res.message : "Login gagal.";
+          showLoading(false); // Hentikan loading jika login gagal
         }
       } catch (err) {
         document.getElementById('login-msg').innerText = "Terjadi kesalahan server. Coba lagi.";
         console.error(err);
-      } finally {
-        setTimeout(() => showLoading(false), 0);
+        showLoading(false); // Hentikan loading jika ada error
       }
     }
 
     async function loadQuizList() {
-      showLoading(true);
+      // showLoading(true) sudah dipanggil di fungsi login, jadi tidak perlu lagi di sini.
       document.getElementById('quiz-list-section').style.display = 'block';
-      // Tampilkan sapaan untuk user
-      document.getElementById('user-greeting').innerHTML = `Hallo, <strong>${user.nama}</strong>!`;
+      // Tampilkan sapaan untuk user dengan emoji
+      document.getElementById('user-greeting').innerHTML = `Hallo 👋😄, <strong>${user.nama}</strong>!`;
 
       try {
         const quizzes = await callGas('getQuizList', [user.nik]);
         const ul = document.getElementById('quiz-list');
-        ul.innerHTML = '';
+        ul.innerHTML = ''; // Kosongkan list sebelum diisi
+
         if (!Array.isArray(quizzes) || quizzes.length === 0) {
           document.getElementById('quiz-list-section').style.display = '';
           document.getElementById('quiz-list-msg').innerHTML = `
@@ -301,7 +302,7 @@
         `;
         console.error(err);
       } finally {
-        setTimeout(() => showLoading(false), 0);
+        showLoading(false); // Selalu hentikan loading setelah selesai (baik sukses maupun gagal)
       }
     }
 
