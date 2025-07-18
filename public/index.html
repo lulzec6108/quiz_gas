@@ -406,7 +406,7 @@
         document.getElementById('quiz-section').style.display = 'none';
         const successSection = document.getElementById('success-section');
         successSection.style.display = '';
-        successSection.innerHTML = `<div class="card-panel center-align green lighten-4 green-text text-darken-4"><h4>${result.message}</h4><h5>Skor Anda: ${result.score}</h5></div>`;
+        successSection.innerHTML = `<div class="card-panel center-align green lighten-4 green-text text-darken-4"><h4>Terima kasih, jawaban Anda telah direkam!</h4></div>`;
         
         setTimeout(resetApp, 4000);
       } catch (error) {
