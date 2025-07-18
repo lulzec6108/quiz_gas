@@ -160,6 +160,23 @@
       color: rgba(255, 255, 255, 0.85);
       font-size: 0.9em;
     }
+
+    /* Menghilangkan tanda centang dari radio button Materialize */
+    [type="radio"]:not(:checked)+span:before,
+    [type="radio"]:not(:checked)+span:after {
+      border: 2px solid #5a5a5a;
+    }
+
+    [type="radio"]:checked+span:after, 
+    [type="radio"].with-gap:checked+span:after {
+      background-color: #0d47a1; /* Warna titik tengah saat dipilih */
+    }
+
+    [type="radio"]:checked+span:after, 
+    [type="radio"].with-gap:checked+span:before, 
+    [type="radio"].with-gap:checked+span:after {
+      border: 2px solid #0d47a1; /* Warna lingkaran luar saat dipilih */
+    }
   </style>
 </head>
 <body>
@@ -225,49 +242,21 @@
     let user = {};
     let currentQuiz = {};
     let questions = [];
-    let answers = [];
-    let page = 0;
+    let answers = {}; // { questionId: answer }
+    let quizInProgress = false; // Flag untuk menandai kuis sedang berjalan
 
-    function showLoading(show) {
-      document.getElementById('overlay-loading').style.display = show ? '' : 'none';
-    }
+    // Peringatan sebelum refresh/menutup tab
+    window.addEventListener('beforeunload', (event) => {
+      if (quizInProgress) {
+        event.preventDefault();
+        event.returnValue = ''; // Diperlukan untuk browser modern
+      }
+    });
 
-    // Helper function to call our Netlify proxy which then calls Google Apps Script
-    async function callGas(functionName, args) {
-        const response = await fetch('/.netlify/functions/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ functionName, args: args || [] })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Request failed: ${response.status} ${errorText}`);
-        }
-        
-        const result = await response.json();
-        if (result.error) {
-            throw new Error(result.error);
-        }
-        return result.data;
-    }
-
-    function resetApp() {
-      user = {};
-      currentQuiz = {};
-      questions = [];
-      answers = [];
-      page = 0;
-      document.getElementById('login-section').style.display = '';
-      document.getElementById('quiz-list-section').style.display = 'none';
-      document.getElementById('quiz-section').style.display = 'none';
-      document.getElementById('success-section').style.display = 'none';
-      document.getElementById('nik').value = '';
-      document.getElementById('login-msg').innerText = '';
-      document.getElementById('quiz-list-msg').innerHTML = '';
-      document.getElementById('quiz-error').innerText = '';
-      window.scrollTo(0,0);
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+      M.AutoInit();
+      resetApp();
+    });
 
     async function login() {
       const nik = document.getElementById('nik').value.trim();
@@ -335,105 +324,170 @@
     }
 
     async function startQuiz(kode_quiz, nama_quiz) {
-      currentQuiz = { kode_quiz, nama_quiz };
+      currentQuiz = { code: kode_quiz, name: nama_quiz };
+      const progressKey = `quizProgress_${user.nik}_${currentQuiz.code}`;
+      const savedAnswers = localStorage.getItem(progressKey);
+      answers = savedAnswers ? JSON.parse(savedAnswers) : {};
+
       showLoading(true);
-      document.getElementById('quiz-error').innerText = '';
       try {
-        const qs = await callGas('getQuestions', [user.nik, kode_quiz]);
-        if (!Array.isArray(qs) || qs.length === 0) {
-          document.getElementById('quiz-list-section').style.display = '';
-          document.getElementById('quiz-section').style.display = 'none';
-          document.getElementById('quiz-list-msg').innerHTML = `
-            <div class="quiz-warning">
-              <span style="font-size:1.2em;">⚠️</span><br>
-              Quiz tidak memiliki soal. Hubungi admin.
-            </div>
-          `;
-          return;
+        questions = await callGas('getQuestions', [user.nik, currentQuiz.code]);
+        if (questions && questions.length > 0) {
+          quizInProgress = true;
+          document.getElementById('quiz-list-section').style.display = 'none';
+          document.getElementById('quiz-section').style.display = '';
+          document.getElementById('quiz-title').innerText = currentQuiz.name;
+          renderQuestions();
+        } else {
+          M.toast({html: 'Gagal memuat soal kuis atau kuis tidak memiliki soal.', classes: 'red'});
         }
-        questions = qs;
-        answers = [];
-        page = 0;
-        document.getElementById('quiz-list-section').style.display = 'none';
-        document.getElementById('quiz-section').style.display = '';
-        document.getElementById('quiz-title').innerText = nama_quiz;
-        renderQuestions(page, qs.length);
-      } catch (err) {
-        document.getElementById('quiz-list-msg').innerHTML = `
-          <div class="quiz-warning">
-            <span style="font-size:1.2em;">⚠️</span><br>
-            Gagal mengambil soal quiz.
-          </div>
-        `;
-        console.error(err);
+      } catch (error) {
+        handleError(error);
       } finally {
-        setTimeout(() => showLoading(false), 0);
+        showLoading(false);
       }
     }
 
-    function renderQuestions(pageNum, expectedCount) {
-      page = pageNum;
-      const perPage = 10;
-      const start = page * perPage;
-      const end = Math.min(start + perPage, questions.length);
+    function renderQuestions() {
       const form = document.getElementById('quiz-form');
-      form.innerHTML = '';
+      form.innerHTML = ''; // Bersihkan form sebelum render
 
-      let warning = '';
-      if (typeof expectedCount === 'number' && questions.length < expectedCount) {
-        warning = `
-          <div class="quiz-warning" style="margin-bottom:18px;">
-            <span style="font-size:1.2em;">⚠️</span><br>
-            <b>Perhatian:</b> Ada beberapa soal yang tidak valid atau tidak dapat ditampilkan.<br>
-            Silakan kerjakan soal yang tersedia dan laporkan ke admin jika jumlah soal kurang dari seharusnya.
-          </div>
-        `;
-      }
-      form.innerHTML += warning;
+      questions.forEach((q, index) => {
+        const questionId = q.id;
+        const optionsHtml = q.opsi.map(option => {
+          const escapedOption = String(option).replace(/"/g, "&quot;");
+          return `
+            <p>
+              <label class="option-label">
+                <input name="q${questionId}" type="radio" value="${escapedOption}" onchange="saveAnswer(${questionId}, '${escapedOption}')" />
+                <span>${option}</span>
+              </label>
+            </p>`;
+        }).join('');
 
-      for (let i = start; i < end; i++) {
-        const q = questions[i];
-        form.innerHTML += `<div class="soal-box">
-          <b>${i+1}. ${q.pertanyaan}</b><br><br>
-          ${q.opsi.map((o, idx) => `
-            <label class="option-label">
-              <input name="q${q.id}" type="radio" value="${String(o).replace(/"/g,"&quot;")}" required />
-              <span>${o}</span>
-            </label>
-          `).join('')}
-        </div>`;
+        const questionHtml = `
+          <div class="card-panel soal-box">
+            <p><b>${index + 1}. ${q.pertanyaan}</b></p>
+            ${optionsHtml}
+          </div>`;
+        form.innerHTML += questionHtml;
+      });
+
+      // Tandai jawaban yang sudah tersimpan
+      Object.keys(answers).forEach(questionId => {
+        const savedOption = form.querySelector(`input[name='q${questionId}'][value='${answers[questionId]}']`);
+        if (savedOption) {
+          savedOption.checked = true;
+        }
+      });
+
+      document.getElementById('pagination').innerHTML = ''; // Hapus sisa pagination
+      window.scrollTo(0, 0);
+    }
+
+    function saveAnswer(questionId, answer) {
+      answers[questionId] = answer;
+      const progressKey = `quizProgress_${user.nik}_${currentQuiz.code}`;
+      localStorage.setItem(progressKey, JSON.stringify(answers));
+    }
+
+    function backToList() {
+      if (quizInProgress && Object.keys(answers).length > 0) {
+        if (!confirm('Apakah Anda yakin ingin kembali? Progres pengerjaan Anda akan hilang.')) {
+          return;
+        }
       }
-      let nav = '';
-      if (start > 0) nav += `<button type="button" class="btn" onclick="renderQuestions(${page-1},${expectedCount})">Sebelumnya</button>`;
-      if (end < questions.length) nav += `<button type="button" class="btn" onclick="renderQuestions(${page+1},${expectedCount});window.scrollTo(0,0);">Selanjutnya</button>`;
-      form.innerHTML += `<div class="center" style="margin-bottom:12px;">${nav}</div>`;
+      quizInProgress = false;
+      if (currentQuiz.code) {
+        const progressKey = `quizProgress_${user.nik}_${currentQuiz.code}`;
+        localStorage.removeItem(progressKey);
+      }
+      resetApp();
     }
 
     async function submitQuiz() {
-      document.getElementById('quiz-error').innerText = '';
-      answers = questions.map(q => ({
-        id_soal: q.id,
-        jawaban_user: (document.querySelector(`input[name="q${q.id}"]:checked`)||{}).value || ""
-      }));
-      if (answers.some(a => !a.jawaban_user)) {
-        document.getElementById('quiz-error').innerText = "Pastikan semua soal sudah dijawab!";
+      if (Object.keys(answers).length < questions.length) {
+        M.toast({html: 'Harap jawab semua pertanyaan sebelum mengirim.', classes: 'orange'});
         return;
       }
+
       showLoading(true);
+      document.getElementById('quiz-error').innerText = '';
       try {
-        const res = await callGas('submitAnswers', [user.nik, user.nama, currentQuiz.kode_quiz, currentQuiz.nama_quiz, answers]);
+        // Format jawaban sesuai ekspektasi backend GAS
+        const formattedAnswers = questions.map(q => ({
+          id_soal: q.id,
+          jawaban_user: answers[q.id] || ""
+        }));
+
+        const result = await callGas('submitAnswers', [user.nik, user.nama, currentQuiz.code, currentQuiz.name, formattedAnswers]);
+        
+        quizInProgress = false;
+        const progressKey = `quizProgress_${user.nik}_${currentQuiz.code}`;
+        localStorage.removeItem(progressKey);
+
         document.getElementById('quiz-section').style.display = 'none';
-        document.getElementById('success-section').style.display = '';
-        setTimeout(resetApp, 2500);
-      } catch (err) {
-        document.getElementById('quiz-error').innerText = "Gagal submit jawaban. Coba lagi.";
-        console.error(err);
+        const successSection = document.getElementById('success-section');
+        successSection.style.display = '';
+        successSection.innerHTML = `<div class="card-panel center-align green lighten-4 green-text text-darken-4"><h4>${result.message}</h4><h5>Skor Anda: ${result.score}</h5></div>`;
+        
+        setTimeout(resetApp, 4000);
+      } catch (error) {
+        handleError(error, 'quiz-error');
       } finally {
-        setTimeout(() => showLoading(false), 0);
+        showLoading(false);
       }
     }
 
-    window.onload = resetApp;
+    function resetApp() {
+      user = {};
+      currentQuiz = {};
+      questions = [];
+      answers = {};
+      quizInProgress = false;
+      document.getElementById('login-section').style.display = '';
+      document.getElementById('quiz-list-section').style.display = 'none';
+      document.getElementById('quiz-section').style.display = 'none';
+      document.getElementById('success-section').style.display = 'none';
+      document.getElementById('nik').value = '';
+      document.getElementById('login-msg').innerText = '';
+      document.getElementById('quiz-list-msg').innerHTML = '';
+      document.getElementById('quiz-error').innerText = '';
+      window.scrollTo(0,0);
+    }
+
+    async function callGas(functionName, args) {
+        const response = await fetch('/.netlify/functions/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ functionName, args: args || [] })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Request failed: ${response.status} ${errorText}`);
+        }
+        
+        const result = await response.json();
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        return result.data;
+    }
+
+    function showLoading(show) {
+      document.getElementById('overlay-loading').style.display = show ? '' : 'none';
+    }
+
+    function handleError(error, elementId) {
+      const errorMessage = error.message || 'Terjadi kesalahan tidak diketahui.';
+      if (elementId) {
+        document.getElementById(elementId).innerText = errorMessage;
+      } else {
+        M.toast({html: errorMessage, classes: 'red'});
+      }
+      console.error(error);
+    }
 
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
