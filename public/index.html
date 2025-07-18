@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quiz Online</title>
+  <!-- Google Fonts: Poppins -->
+  <link href="https://fonts.googleapis.com/css?family=Poppins:400,600&display=swap" rel="stylesheet">
+  <!-- Materialize CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #222;
+    }
+    .card-panel {
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 4px 24px rgba(118,75,162,0.08);
+      margin-bottom: 24px;
+    }
+    .btn, .btn-small {
+      border-radius: 24px;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .gradient-header {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      border-radius: 0 0 24px 24px;
+      padding: 32px 0 24px 0;
+      text-align: center;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 12px rgba(118,75,162,0.10);
+    }
+    .loading-spinner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 120px;
+    }
+    .loader {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #764ba2;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    .input-field input[type=text]:focus + label {
+      color: #764ba2 !important;
+    }
+    .input-field input[type=text]:focus {
+      border-bottom: 2px solid #764ba2 !important;
+      box-shadow: 0 1px 0 0 #764ba2 !important;
+    }
+    .error-msg {
+      color: #d32f2f;
+      margin-top: 12px;
+      font-size: 15px;
+      text-align: center;
+    }
+    .success-msg {
+      color: #388e3c;
+      margin-top: 12px;
+      font-size: 15px;
+      text-align: center;
+    }
+    .quiz-warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1.5px solid #ffe082;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin: 16px 0 0 0;
+      font-size: 16px;
+      text-align: center;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(255,224,130,0.10);
+    }
+    .quiz-title-box {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      border-radius: 16px;
+      padding: 22px 16px 18px 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(118,75,162,0.18);
+      text-align: center;
+      font-size: 1.3em;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .soal-box {
+      border: 2px solid #764ba2;
+      border-radius: 14px;
+      background: #f8f8fc;
+      margin-bottom: 24px;
+      padding: 18px 18px 12px 18px;
+      box-shadow: 0 2px 8px rgba(118,75,162,0.04);
+    }
+    .soal-box label {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    @media (max-width: 600px) {
+      .quiz-title-box { font-size: 1em; }
+      .soal-box label { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay-loading" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:rgba(30,30,30,0.32);">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+    <div class="loader"></div>
+  </div>
+</div>
+  <div class="gradient-header">
+    <h4 style="margin:0;font-weight:700;">Quiz Online</h4>
+    <p style="margin:0;font-weight:400;opacity:0.8;">Jawab quiz dengan mudah dan cepat</p>
+  </div>
+  <div class="container" id="app">
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-spinner" style="display:none;">
+      <div class="loader"></div>
+    </div>
+    <!-- Login -->
+    <div id="login-section">
+      <div class="card-panel">
+        <h5 style="margin-top:0;font-weight:600;">Login Quiz</h5>
+        <div class="input-field">
+          <input id="nik" type="text" class="validate" autocomplete="off">
+          <label for="nik">Masukkan NIK/NIP</label>
+        </div>
+        <button class="btn" style="width:100%;" onclick="login()">Login</button>
+        <div id="login-msg" class="error-msg"></div>
+      </div>
+    </div>
+    <!-- Pilih Quiz -->
+    <div id="quiz-list-section" style="display:none;">
+      <div class="card-panel">
+        <h5 style="font-weight:600;">Daftar Quiz Aktif</h5>
+        <ul id="quiz-list" class="collection"></ul>
+        <div id="quiz-list-msg"></div>
+      </div>
+    </div>
+    <!-- Soal Quiz -->
+    <div id="quiz-section" style="display:none;">
+      <div class="quiz-title-box" id="quiz-title"></div>
+      <form id="quiz-form"></form>
+      <div class="center">
+        <button class="btn" onclick="submitQuiz()" type="button">Submit</button>
+      </div>
+      <div id="quiz-error" class="error-msg"></div>
+    </div>
+    <!-- Success -->
+    <div id="success-section" style="display:none;">
+      <div class="card-panel center">
+        <h5 class="success-msg">Terima kasih, jawaban Anda telah direkam!</h5>
+        <button class="btn" onclick="resetApp()">Kembali ke Login</button>
+      </div>
+    </div>
+  </div>
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    let user = {};
+    let currentQuiz = {};
+    let questions = [];
+    let answers = [];
+    let page = 0;
+
+    function showLoading(show) {
+      document.getElementById('overlay-loading').style.display = show ? '' : 'none';
+    }
+
+    // Helper function to call our Netlify proxy which then calls Google Apps Script
+    async function callGas(functionName, args) {
+        const response = await fetch('/.netlify/functions/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ functionName, args: args || [] })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Request failed: ${response.status} ${errorText}`);
+        }
+        
+        const result = await response.json();
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        return result.data;
+    }
+
+    function resetApp() {
+      user = {};
+      currentQuiz = {};
+      questions = [];
+      answers = [];
+      page = 0;
+      document.getElementById('login-section').style.display = '';
+      document.getElementById('quiz-list-section').style.display = 'none';
+      document.getElementById('quiz-section').style.display = 'none';
+      document.getElementById('success-section').style.display = 'none';
+      document.getElementById('nik').value = '';
+      document.getElementById('login-msg').innerText = '';
+      document.getElementById('quiz-list-msg').innerHTML = '';
+      document.getElementById('quiz-error').innerText = '';
+      window.scrollTo(0,0);
+    }
+
+    async function login() {
+      const nik = document.getElementById('nik').value.trim();
+      document.getElementById('login-msg').innerText = '';
+      if (!nik) {
+        document.getElementById('login-msg').innerText = "NIK/NIP wajib diisi!";
+        return;
+      }
+      showLoading(true);
+      try {
+        const res = await callGas('loginUser', [nik]);
+        if (res && res.success) {
+          user.nik = nik;
+          user.nama = res.nama || '';
+          document.getElementById('login-section').style.display = 'none';
+          loadQuizList();
+        } else {
+          document.getElementById('login-msg').innerText = res && res.message ? res.message : "Login gagal.";
+        }
+      } catch (err) {
+        document.getElementById('login-msg').innerText = "Terjadi kesalahan server. Coba lagi.";
+        console.error(err);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function loadQuizList() {
+      showLoading(true);
+      document.getElementById('quiz-list-msg').innerHTML = '';
+      try {
+        const quizzes = await callGas('getQuizList', [user.nik]);
+        const ul = document.getElementById('quiz-list');
+        ul.innerHTML = '';
+        if (!Array.isArray(quizzes) || quizzes.length === 0) {
+          document.getElementById('quiz-list-section').style.display = '';
+          document.getElementById('quiz-list-msg').innerHTML = `
+            <div class="quiz-warning">
+              <span style="font-size:1.2em;">⚠️</span><br>
+              <b>Tidak ada quiz tersedia untuk Anda.</b><br>
+              Semua quiz sudah dikerjakan atau belum ada quiz aktif.<br>
+              Silakan hubungi admin jika ini tidak sesuai.
+            </div>
+          `;
+          return;
+        }
+        document.getElementById('quiz-list-section').style.display = '';
+        quizzes.forEach(q => {
+          const li = document.createElement('li');
+          li.className = "collection-item";
+          li.innerHTML = `<b>${q.nama_quiz}</b> (${q.nama_kegiatan}) <button class="secondary-content btn-small" onclick="startQuiz('${q.kode_quiz.replace(/'/g,"\\'")}', '${q.nama_quiz.replace(/'/g,"\\'")}')">Mulai</button>`;
+          ul.appendChild(li);
+        });
+      } catch (err) {
+        document.getElementById('quiz-list-msg').innerHTML = `
+          <div class="quiz-warning">
+            <span style="font-size:1.2em;">⚠️</span><br>
+            Gagal mengambil daftar quiz. Silakan coba lagi.
+          </div>
+        `;
+        console.error(err);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function startQuiz(kode_quiz, nama_quiz) {
+      currentQuiz = { kode_quiz, nama_quiz };
+      showLoading(true);
+      document.getElementById('quiz-error').innerText = '';
+      try {
+        const qs = await callGas('getQuestions', [user.nik, kode_quiz]);
+        if (!Array.isArray(qs) || qs.length === 0) {
+          document.getElementById('quiz-list-section').style.display = '';
+          document.getElementById('quiz-section').style.display = 'none';
+          document.getElementById('quiz-list-msg').innerHTML = `
+            <div class="quiz-warning">
+              <span style="font-size:1.2em;">⚠️</span><br>
+              Quiz tidak memiliki soal. Hubungi admin.
+            </div>
+          `;
+          return;
+        }
+        questions = qs;
+        answers = [];
+        page = 0;
+        document.getElementById('quiz-list-section').style.display = 'none';
+        document.getElementById('quiz-section').style.display = '';
+        document.getElementById('quiz-title').innerText = nama_quiz;
+        renderQuestions(page, qs.length);
+      } catch (err) {
+        document.getElementById('quiz-list-msg').innerHTML = `
+          <div class="quiz-warning">
+            <span style="font-size:1.2em;">⚠️</span><br>
+            Gagal mengambil soal quiz.
+          </div>
+        `;
+        console.error(err);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function renderQuestions(pageNum, expectedCount) {
+      page = pageNum;
+      const perPage = 10;
+      const start = page * perPage;
+      const end = Math.min(start + perPage, questions.length);
+      const form = document.getElementById('quiz-form');
+      form.innerHTML = '';
+
+      let warning = '';
+      if (typeof expectedCount === 'number' && questions.length < expectedCount) {
+        warning = `
+          <div class="quiz-warning" style="margin-bottom:18px;">
+            <span style="font-size:1.2em;">⚠️</span><br>
+            <b>Perhatian:</b> Ada beberapa soal yang tidak valid atau tidak dapat ditampilkan.<br>
+            Silakan kerjakan soal yang tersedia dan laporkan ke admin jika jumlah soal kurang dari seharusnya.
+          </div>
+        `;
+      }
+      form.innerHTML += warning;
+
+      for (let i = start; i < end; i++) {
+        const q = questions[i];
+        form.innerHTML += `<div class="soal-box">
+          <b>${i+1}. ${q.pertanyaan}</b><br>
+          ${q.opsi.map((o, idx) => `
+            <label style="margin-right:16px;">
+              <input name="q${q.id}" type="radio" value="${String(o).replace(/"/g,"&quot;")}" required />
+              <span>${o}</span>
+            </label>
+          `).join('<br>')}
+        </div>`;
+      }
+      let nav = '';
+      if (start > 0) nav += `<button type="button" class="btn" onclick="renderQuestions(${page-1},${expectedCount})">Sebelumnya</button>`;
+      if (end < questions.length) nav += `<button type="button" class="btn" onclick="renderQuestions(${page+1},${expectedCount});window.scrollTo(0,0);">Selanjutnya</button>`;
+      form.innerHTML += `<div class="center" style="margin-bottom:12px;">${nav}</div>`;
+    }
+
+    async function submitQuiz() {
+      document.getElementById('quiz-error').innerText = '';
+      answers = questions.map(q => ({
+        id_soal: q.id,
+        jawaban_user: (document.querySelector(`input[name="q${q.id}"]:checked`)||{}).value || ""
+      }));
+      if (answers.some(a => !a.jawaban_user)) {
+        document.getElementById('quiz-error').innerText = "Pastikan semua soal sudah dijawab!";
+        return;
+      }
+      showLoading(true);
+      try {
+        const res = await callGas('submitAnswers', [user.nik, user.nama, currentQuiz.kode_quiz, currentQuiz.nama_quiz, answers]);
+        document.getElementById('quiz-section').style.display = 'none';
+        document.getElementById('success-section').style.display = '';
+        setTimeout(resetApp, 2500);
+      } catch (err) {
+        document.getElementById('quiz-error').innerText = "Gagal submit jawaban. Coba lagi.";
+        console.error(err);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    window.onload = resetApp;
+  </script>
+</body>
+</html>

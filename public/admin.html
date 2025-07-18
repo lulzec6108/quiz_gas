@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard Admin Quiz</title>
+  <!-- Google Fonts: Poppins -->
+  <link href="https://fonts.googleapis.com/css?family=Poppins:400,600&display=swap" rel="stylesheet">
+  <!-- Materialize CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #222;
+    }
+    .gradient-header {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      border-radius: 0 0 24px 24px;
+      padding: 32px 0 24px 0;
+      text-align: center;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 12px rgba(118,75,162,0.10);
+    }
+    .card-panel {
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 4px 24px rgba(118,75,162,0.08);
+      margin-bottom: 24px;
+    }
+    .input-field select {
+      border-radius: 12px;
+      background: #f3f4fa;
+    }
+    .table-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #764ba2;
+      letter-spacing: 0.5px;
+    }
+    table.striped {
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(118,75,162,0.04);
+    }
+    th, td {
+      font-size: 15px;
+      text-align: center;
+      vertical-align: middle !important;
+    }
+    th {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      font-weight: 600;
+      border: none;
+    }
+    tr:nth-child(even) td {
+      background: #f8f8fc;
+    }
+    .loading-spinner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 120px;
+    }
+    .loader {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #764ba2;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    @media (max-width: 600px) {
+      th, td { font-size: 13px;}
+      .gradient-header { padding: 24px 0 16px 0;}
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay-loading" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:rgba(30,30,30,0.32);">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+    <div class="loader"></div>
+  </div>
+</div>
+  <div class="gradient-header">
+    <h4 style="margin:0;font-weight:700;">Dashboard Admin Quiz</h4>
+    <p style="margin:0;font-weight:400;opacity:0.85;">Monitoring, Rekap, dan Arsip Nilai Peserta</p>
+  </div>
+  <div class="container">
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-spinner" style="display:none;">
+      <div class="loader"></div>
+    </div>
+    <div class="card-panel">
+      <div class="input-field">
+        <select id="filter-kegiatan" onchange="loadRekap()"></select>
+        <label>Filter Nama Kegiatan</label>
+      </div>
+    </div>
+    <div class="card-panel">
+    <div class="table-title">Kontrol Buka/Tutup Quiz</div>
+      <div style="overflow-x:auto;">
+        <table class="striped" id="quiz-status-table">
+          <thead>
+            <tr><th>Quiz</th><th>Status</th><th>Aksi</th></tr>
+          </thead>
+          <tbody id="quiz-status-list"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-panel">
+      <div class="table-title">Rekap Nilai & Ranking</div>
+      <div style="overflow-x:auto;">
+        <table class="striped" id="rekap-table">
+          <thead><tr id="rekap-head"></tr></thead>
+          <tbody id="rekap-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-panel">
+      <div class="table-title">Peserta Belum Isi Quiz</div>
+      <div style="overflow-x:auto;">
+        <table class="striped" id="belum-table">
+          <thead>
+            <tr><th>Nama</th><th>NIK</th><th>Quiz Belum Dikerjakan</th></tr>
+          </thead>
+          <tbody id="belum-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    function showLoading(show) {
+      document.getElementById('overlay-loading').style.display = show ? '' : 'none';
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      showLoading(true);
+      google.script.run.withSuccessHandler(fillKegiatan).getQuizConfig();
+    });
+    function fillKegiatan(configs) {
+      showLoading(false);
+      const kegiatan = [...new Set(configs.map(c => c.nama_kegiatan))];
+      const sel = document.getElementById('filter-kegiatan');
+      sel.innerHTML = '';
+      kegiatan.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.text = k;
+        sel.appendChild(opt);
+      });
+      M.FormSelect.init(sel);
+      if (kegiatan.length) loadRekap();
+    }
+    function loadRekap() {
+      const kegiatan = document.getElementById('filter-kegiatan').value;
+      showLoading(true);
+      loadQuizStatus(); // <-- panggil di sini!
+      google.script.run.withSuccessHandler(res => {
+        showLoading(false); showRekap(res);
+      }).getAdminRekap(kegiatan);
+      google.script.run.withSuccessHandler(res => {
+        showLoading(false); showBelum(res);
+      }).getAdminBelumIsi(kegiatan);
+    }
+    function showRekap(res) {
+      const head = document.getElementById('rekap-head');
+      const body = document.getElementById('rekap-body');
+      head.innerHTML = `<th>Rank</th><th>Nama</th><th>NIK</th>` +
+        Object.values(res.quizMap).map(q => `<th>${q}</th>`).join('') +
+        `<th>Total</th>`;
+      body.innerHTML = '';
+      res.data.forEach(row => {
+        body.innerHTML += `<tr>
+          <td>${row.rank}</td>
+          <td>${row.nama}</td>
+          <td>${row.NIK}</td>
+          ${Object.keys(res.quizMap).map(k => `<td>${row.per_quiz[k]||0}</td>`).join('')}
+          <td><b>${row.total}</b></td>
+        </tr>`;
+      });
+    }
+    function showBelum(list) {
+      const body = document.getElementById('belum-body');
+      body.innerHTML = '';
+      list.forEach(u => {
+        body.innerHTML += `<tr>
+          <td>${u.nama}</td>
+          <td>${u.nik}</td>
+          <td>${u.belum.join(', ')}</td>
+        </tr>`;
+      });
+    }
+    function loadQuizStatus() {
+      const kegiatan = document.getElementById('filter-kegiatan').value;
+      google.script.run.withSuccessHandler(function(configs){
+        let html = '';
+        configs.filter(q => q.nama_kegiatan === kegiatan).forEach(q => {
+            html += `<tr>
+              <td>${q.nama_quiz}</td>
+              <td>
+                <button disabled class="btn-small" 
+                  style="
+                    background:${q.status === 'buka' ? '#388e3c' : '#d32f2f'};
+                    color:#fff;
+                    border-radius:16px;
+                    font-weight:600;
+                    box-shadow:none;
+                    border:none;
+                    cursor:default;
+                    font-size:15px;
+                  ">
+                  ${q.status === 'buka' ? 'BUKA' : 'TUTUP'}
+                </button>
+              </td>
+              <td>
+                <button class="btn-small" style="background:${q.status === 'buka' ? '#d32f2f' : '#388e3c'};border-radius:16px;font-weight:600;" 
+                  onclick="setQuizStatus('${q.kode_quiz}','${q.status === 'buka' ? 'tutup' : 'buka'}')">
+                  ${q.status === 'buka' ? 'Tutup' : 'Buka'}
+                </button>
+              </td>
+            </tr>`;
+        });
+        document.getElementById('quiz-status-list').innerHTML = html;
+      }).getQuizConfig();
+    }
+
+    function setQuizStatus(kode_quiz, statusBaru) {
+      showLoading(true);
+      google.script.run.withSuccessHandler(function(){
+        showLoading(false);
+        loadQuizStatus();
+        loadRekap();
+      }).setQuizStatus(kode_quiz, statusBaru);
+    }
+  </script>
+</body>
+</html>

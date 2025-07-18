@@ -1,0 +1,10 @@
+[build]
+  # Direktori tempat file statis (HTML, CSS, JS) berada
+  publish = "public"
+  # Direktori tempat Netlify Functions berada
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
