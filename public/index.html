@@ -405,10 +405,15 @@
 
         document.getElementById('quiz-section').style.display = 'none';
         const successSection = document.getElementById('success-section');
-        successSection.style.display = '';
-        successSection.innerHTML = `<div class="card-panel center-align green lighten-4 green-text text-darken-4"><h4>Terima kasih, jawaban Anda telah direkam!</h4></div>`;
+        successSection.style.display = 'block'; // Tampilkan section
+        // Tambahkan pesan sukses beserta tombol kembali
+        successSection.innerHTML = `
+          <div class="card-panel center">
+            <h5 class="success-msg">Terima kasih, jawaban Anda telah direkam!</h5>
+            <button class="btn" onclick="resetApp()">Kembali ke Login</button>
+          </div>
+        `;
         
-        setTimeout(resetApp, 4000);
       } catch (error) {
         handleError(error, 'quiz-error');
       } finally {
