@@ -187,6 +187,7 @@
     <!-- Pilih Quiz -->
     <div id="quiz-list-section" style="display:none;">
       <div class="card-panel">
+        <h5 id="user-greeting" class="center-align" style="margin-bottom: 20px; font-weight: 600;"></h5>
         <h5 style="font-weight:600;">Daftar Quiz Aktif</h5>
         <ul id="quiz-list" class="collection"></ul>
         <div id="quiz-list-msg"></div>
@@ -264,7 +265,10 @@
 
     async function loadQuizList() {
       showLoading(true);
-      document.getElementById('quiz-list-msg').innerHTML = '';
+      document.getElementById('quiz-list-section').style.display = 'block';
+      // Tampilkan sapaan untuk user
+      document.getElementById('user-greeting').innerHTML = `Hallo, <strong>${user.nama}</strong>!`;
+
       try {
         const quizzes = await callGas('getQuizList', [user.nik]);
         const ul = document.getElementById('quiz-list');
