@@ -6,7 +6,7 @@
   <link href="https://fonts.googleapis.com/css?family=Poppins:400,600&display=swap" rel="stylesheet">
   <!-- Materialize CSS -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="icon" href="/icons/icon-192x192.png?v=2" type="image/png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#764ba2"/>
@@ -136,11 +136,6 @@
       font-weight: 600;
       color: #764ba2;
     }
-    .option-label input[type="radio"]:checked + span::before {
-      content: '✔ ';
-      color: #388e3c;
-      font-weight: bold;
-    }
     /* Hide default radio button but keep it accessible */
     [type="radio"]:not(:checked), [type="radio"]:checked {
         position: absolute;
@@ -153,35 +148,11 @@
     }
     /* --- End Mobile Friendly Options --- */
 
-    /* Final Fix: Menghilangkan tanda centang dari radio button */
-
-    /* Gaya untuk lingkaran luar */
-    [type="radio"]:not(:checked)+span:before,
-    [type="radio"]:not(:checked)+span:after {
-      border: 2px solid #5a5a5a;
-    }
-    [type="radio"].with-gap:checked+span:before,
-    [type="radio"].with-gap:checked+span:after {
-      border: 2px solid #0d47a1; /* Warna border saat dipilih */
-    }
-
-    /* Paksa elemen dalam (yang seharusnya centang) menjadi titik */
-    [type="radio"]:checked+span:after,
-    [type="radio"].with-gap:checked+span:after {
-      background-color: #0d47a1; /* Warna titik */
-      transform: scale(0.5); /* Ukuran titik */
-      /* Atur ulang properti yang membuat bentuk centang */
-      border-radius: 50%;
-      border-top: 2px solid #0d47a1;
-      border-left: 2px solid #0d47a1;
-      border-right: 2px solid #0d47a1;
-      border-bottom: 2px solid #0d47a1;
-    }
-
     .footer {
       text-align: center;
       padding: 20px 0;
       margin-top: 30px;
+      background-color: #0d47a1;
       color: rgba(255, 255, 255, 0.85);
       font-size: 0.9em;
     }
