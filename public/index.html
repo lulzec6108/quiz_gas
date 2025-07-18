@@ -7,6 +7,8 @@
   <!-- Materialize CSS -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#764ba2"/>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -113,6 +115,50 @@
       .quiz-title-box { font-size: 1em; }
       .soal-box label { font-size: 14px; }
     }
+
+    /* --- Mobile Friendly Options --- */
+    .option-label {
+      display: block;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      background: #fff;
+    }
+    .option-label:hover {
+      border-color: #764ba2;
+      background: #f8f5fc;
+    }
+    .option-label input[type="radio"]:checked + span {
+      font-weight: 600;
+      color: #764ba2;
+    }
+    .option-label input[type="radio"]:checked + span::before {
+      content: '✔ ';
+      color: #388e3c;
+      font-weight: bold;
+    }
+    /* Hide default radio button but keep it accessible */
+    [type="radio"]:not(:checked), [type="radio"]:checked {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .option-label span {
+        font-size: 16px;
+        color: #333;
+    }
+    /* --- End Mobile Friendly Options --- */
+
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      margin-top: 30px;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.9em;
+    }
   </style>
 </head>
 <body>
@@ -167,6 +213,11 @@
       </div>
     </div>
   </div>
+
+  <div class="footer">
+    &copy; 2025 BPS Kabupaten Kapuas Hulu | Developed by Fayadh Abiyyi
+  </div>
+
   <!-- Materialize JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
@@ -342,13 +393,13 @@
       for (let i = start; i < end; i++) {
         const q = questions[i];
         form.innerHTML += `<div class="soal-box">
-          <b>${i+1}. ${q.pertanyaan}</b><br>
+          <b>${i+1}. ${q.pertanyaan}</b><br><br>
           ${q.opsi.map((o, idx) => `
-            <label style="margin-right:16px;">
+            <label class="option-label">
               <input name="q${q.id}" type="radio" value="${String(o).replace(/"/g,"&quot;")}" required />
               <span>${o}</span>
             </label>
-          `).join('<br>')}
+          `).join('')}
         </div>`;
       }
       let nav = '';
@@ -382,6 +433,17 @@
     }
 
     window.onload = resetApp;
+
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, err => {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
   </script>
 </body>
 </html>
