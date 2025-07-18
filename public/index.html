@@ -291,7 +291,7 @@
         document.getElementById('login-msg').innerText = "Terjadi kesalahan server. Coba lagi.";
         console.error(err);
       } finally {
-        showLoading(false);
+        setTimeout(() => showLoading(false), 0);
       }
     }
 
@@ -330,7 +330,7 @@
         `;
         console.error(err);
       } finally {
-        showLoading(false);
+        setTimeout(() => showLoading(false), 0);
       }
     }
 
@@ -367,7 +367,7 @@
         `;
         console.error(err);
       } finally {
-        showLoading(false);
+        setTimeout(() => showLoading(false), 0);
       }
     }
 
@@ -429,7 +429,7 @@
         document.getElementById('quiz-error').innerText = "Gagal submit jawaban. Coba lagi.";
         console.error(err);
       } finally {
-        showLoading(false);
+        setTimeout(() => showLoading(false), 0);
       }
     }
 
